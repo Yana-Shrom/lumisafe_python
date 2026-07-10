@@ -1,0 +1,12 @@
+# Environnements Python
+venv/
+__pycache__/
+*.pyc
+
+# Secrets locaux — jamais commités
+.env
+lumisafe/secrets_local.py
+
+# Captures caméra (si le service tourne en local avec CAMERA_OUTPUT_DIR
+# pointant dans le repo par erreur — normalement il pointe hors du repo)
+captures/

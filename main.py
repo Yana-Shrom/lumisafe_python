@@ -1,7 +1,7 @@
 """
 Point d'entrée du service Python LumiSafe.
-Fait le lien entre la couche infra (MQTT) et la couche domaine (logique métier),
-sans que les deux ne se connaissent directement.
+Fait le lien entre les couches infra (MQTT, caméra) et la couche domaine
+(logique métier), sans que ces couches ne se connaissent entre elles.
 """
 
 import signal
@@ -9,21 +9,26 @@ import sys
 
 from lumisafe.mqtt_client import MqttClient
 from lumisafe.motion_handler import MotionHandler
+from lumisafe.camera_controller import build_camera_controller
 
 handler = MotionHandler()
+camera = build_camera_controller()
 mqtt_client = None  # initialisé dans main()
 
 
 def on_motion_event(detected: bool):
     """Callback appelé par la couche MQTT à chaque message reçu."""
-    should_light_be_on = handler.handle_motion(detected)
-    mqtt_client.publish_light_command(should_light_be_on)
+    decision = handler.handle_motion(detected)
+    mqtt_client.publish_light_command(decision.light_on)
+    if decision.capture_photo:
+        camera.capture_photo(reason="motion_detected")
 
 
 def handle_shutdown(sig, frame):
     print("\nArrêt en cours...")
     if mqtt_client:
         mqtt_client.disconnect()
+    camera.close()
     sys.exit(0)
 
 
