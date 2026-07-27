@@ -10,3 +10,7 @@ lumisafe/secrets_local.py
 # Captures caméra (si le service tourne en local avec CAMERA_OUTPUT_DIR
 # pointant dans le repo par erreur — normalement il pointe hors du repo)
 captures/
+
+# Base d'historique (si LUMISAFE_DB_PATH pointe dans le repo en dev local —
+# normalement elle pointe hors du repo, comme CAMERA_OUTPUT_DIR)
+*.db
