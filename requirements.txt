@@ -1,1 +1,14 @@
 paho-mqtt==1.6.1
+
+# API REST (dashboard François/Guillaume) — voir api/main.py.
+# Process indépendant du service MQTT, lancé séparément avec uvicorn.
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# picamera2 n'est volontairement PAS listé ici : il dépend de libcamera
+# (bindings système, pas un simple wheel pip) et n'est installable que sur
+# le Raspberry Pi via :
+#   sudo apt install -y python3-picamera2
+# Sur toute autre machine (dev sans matériel), le service détecte
+# l'absence de picamera2 et bascule automatiquement sur une caméra
+# simulée (voir lumisafe/camera_controller.py) — rien à installer.

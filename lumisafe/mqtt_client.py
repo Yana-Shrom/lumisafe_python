@@ -11,12 +11,19 @@ from . import config
 
 
 class MqttClient:
-    def __init__(self, on_motion_callback):
+    def __init__(self, on_motion_callback, on_sound_callback=None, on_vibration_callback=None):
         """
         on_motion_callback: fonction appelée avec un booléen
-        (True = mouvement détecté, False = zone dégagée)
+            (True = mouvement détecté, False = zone dégagée)
+        on_sound_callback: fonction appelée avec un float (niveau en dB),
+            optionnel — tant que le micro n'est pas branché côté C
+        on_vibration_callback: fonction appelée avec un float (en g),
+            optionnel — tant que l'accéléromètre n'est pas branché côté C
         """
         self._on_motion_callback = on_motion_callback
+        self._on_sound_callback = on_sound_callback
+        self._on_vibration_callback = on_vibration_callback
+
         self._client = mqtt.Client(client_id=config.MQTT_CLIENT_ID)
 
         self._client.username_pw_set(config.MQTT_USERNAME, config.MQTT_PASSWORD)
@@ -39,6 +46,10 @@ class MqttClient:
         payload = "on" if turn_on else "off"
         self._client.publish(config.TOPIC_LIGHT_COMMAND, payload, qos=1)
 
+    def publish_alert_command(self, active: bool):
+        payload = "on" if active else "off"
+        self._client.publish(config.TOPIC_ALERT_COMMAND, payload, qos=1)
+
     def disconnect(self):
         self._client.disconnect()
 
@@ -49,6 +60,10 @@ class MqttClient:
             print(f"[mqtt] Connecté au broker ({config.MQTT_HOST}:{config.MQTT_PORT})")
             client.subscribe(config.TOPIC_MOTION)
             print(f"[mqtt] Abonné à {config.TOPIC_MOTION}")
+            client.subscribe(config.TOPIC_SOUND)
+            print(f"[mqtt] Abonné à {config.TOPIC_SOUND}")
+            client.subscribe(config.TOPIC_VIBRATION)
+            print(f"[mqtt] Abonné à {config.TOPIC_VIBRATION}")
         else:
             print(f"[mqtt] Échec de connexion, code={rc}")
 
@@ -57,6 +72,22 @@ class MqttClient:
 
     def _handle_message(self, client, userdata, msg):
         payload = msg.payload.decode("utf-8")
+
         if msg.topic == config.TOPIC_MOTION:
             motion_detected = (payload == "detected")
             self._on_motion_callback(motion_detected)
+            return
+
+        if msg.topic == config.TOPIC_SOUND and self._on_sound_callback:
+            try:
+                self._on_sound_callback(float(payload))
+            except ValueError:
+                print(f"[mqtt] Payload son invalide, ignoré: {payload!r}")
+            return
+
+        if msg.topic == config.TOPIC_VIBRATION and self._on_vibration_callback:
+            try:
+                self._on_vibration_callback(float(payload))
+            except ValueError:
+                print(f"[mqtt] Payload vibration invalide, ignoré: {payload!r}")
+            return
